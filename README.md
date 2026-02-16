@@ -52,5 +52,3 @@ Random effects like:
 
 Rock-paper-scissors meets poker meets chaos.  
 Pure bluffing, mind games, and adaptation.
-
----

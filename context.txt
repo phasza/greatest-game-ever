@@ -1,0 +1,395 @@
+⚔️ GLITCH DUEL - Shared Contract
+Version: 1.0.0
+🔌 WebSocket Connection
+URL: ws://localhost:3000
+All messages use this structure:
+json{
+"type": "string",
+"payload": {}
+}
+
+📤 CLIENT → SERVER MESSAGES
+
+1. createRoom
+   json{
+   "type": "createRoom",
+   "payload": { "playerName": "Alice" }
+   }
+2. joinRoom
+   json{
+   "type": "joinRoom",
+   "payload": { "roomCode": "X7K9", "playerName": "Bob" }
+   }
+3. submitAction
+   json{
+   "type": "submitAction",
+   "payload": {
+   "action": "attack",
+   "shownAction": "defend"
+   }
+   }
+
+action: real action to execute
+shownAction: what opponent sees (null = hide)
+
+4. readyNextRound
+   json{
+   "type": "readyNextRound",
+   "payload": {}
+   }
+5. leaveRoom
+   json{
+   "type": "leaveRoom",
+   "payload": {}
+   }
+
+📥 SERVER → CLIENT EVENTS
+
+1. connected
+   json{
+   "type": "connected",
+   "payload": { "clientId": "abc123" }
+   }
+2. roomCreated
+   json{
+   "type": "roomCreated",
+   "payload": { "roomCode": "X7K9", "playerId": "abc123" }
+   }
+3. roomJoined
+   json{
+   "type": "roomJoined",
+   "payload": { "roomCode": "X7K9", "playerId": "def456" }
+   }
+4. gameStarted
+   json{
+   "type": "gameStarted",
+   "payload": {
+   "players": {
+   "abc123": { "name": "Alice", "hp": 10, "energy": 0 },
+   "def456": { "name": "Bob", "hp": 10, "energy": 0 }
+   },
+   "currentRound": 1,
+   "modifier": {
+   "id": "doubleDamage",
+   "name": "⚡ DOUBLE DAMAGE",
+   "description": "All damage is doubled this round",
+   "effect": "doubleDamage"
+   }
+   }
+   }
+5. opponentJoined
+   json{
+   "type": "opponentJoined",
+   "payload": { "opponentName": "Bob" }
+   }
+6. actionSubmitted
+   json{
+   "type": "actionSubmitted",
+   "payload": { "success": true }
+   }
+7. opponentShownAction
+   json{
+   "type": "opponentShownAction",
+   "payload": { "shownAction": "defend" }
+   }
+   Real-time update when opponent reveals/bluffs
+8. roundResult
+   json{
+   "type": "roundResult",
+   "payload": {
+   "players": {
+   "abc123": {
+   "action": "attack",
+   "shownAction": "defend",
+   "hp": 10,
+   "energy": 0,
+   "damageDealt": 1,
+   "damageTaken": 0,
+   "healed": 0,
+   "energyGained": 0
+   },
+   "def456": {
+   "action": "charge",
+   "shownAction": null,
+   "hp": 9,
+   "energy": 1,
+   "damageDealt": 0,
+   "damageTaken": 1,
+   "healed": 0,
+   "energyGained": 1
+   }
+   },
+   "modifier": { /_ current modifier _/ },
+   "nextModifier": { /_ next round's modifier _/ },
+   "roundNumber": 1,
+   "gameOver": false,
+   "winner": null
+   }
+   }
+9. nextRound
+   json{
+   "type": "nextRound",
+   "payload": {
+   "roundNumber": 2,
+   "modifier": { /_ ... _/ },
+   "timeLimit": 15
+   }
+   }
+10. timerUpdate
+    json{
+    "type": "timerUpdate",
+    "payload": { "timeRemaining": 12 }
+    }
+    Sent every second
+11. error
+    json{
+    "type": "error",
+    "payload": {
+    "message": "Room not found",
+    "code": "ROOM_NOT_FOUND"
+    }
+    }
+    Error codes: ROOM_NOT_FOUND, ROOM_FULL, INVALID_ACTION, NOT_YOUR_TURN
+12. opponentDisconnected
+    json{
+    "type": "opponentDisconnected",
+    "payload": { "message": "Your opponent has disconnected" }
+    }
+
+🎮 GAME TYPES
+Actions
+typescripttype Action = 'attack' | 'defend' | 'charge' | 'heal' | 'super';
+ActionIconEffectattack💣Deal 1 damage, interrupts Healdefend🛡Blocks Attack & Supercharge⚡Gain 1 Energy (vulnerable to Attack)heal❤️Gain 1 HP (interrupted by Attack)super💀Deal 3 damage, costs 2 Energy
+Modifiers
+javascriptconst MODIFIERS = [
+{
+id: 'doubleDamage',
+name: '⚡ DOUBLE DAMAGE',
+description: 'All damage is doubled this round',
+effect: 'doubleDamage'
+},
+{
+id: 'noDefend',
+name: '🚫 NO SHIELDS',
+description: 'Defend action is disabled',
+effect: 'noDefend'
+},
+{
+id: 'cheapSuper',
+name: '💸 CHEAP SUPER',
+description: 'Super costs only 1 Energy',
+effect: 'cheapSuper'
+},
+{
+id: 'healDamages',
+name: '☠️ CURSED HEAL',
+description: 'Heal deals 1 damage instead of healing',
+effect: 'healDamages'
+},
+{
+id: 'bothLoseHP',
+name: '💀 ATTRITION',
+description: 'Both players lose 1 HP at round start',
+effect: 'bothLoseHP'
+},
+{
+id: 'noRepeat',
+name: '🔄 NO REPEATS',
+description: 'Cannot use same action as previous round',
+effect: 'noRepeat'
+},
+{
+id: 'mustReveal',
+name: '👁️ TRUTH SERUM',
+description: 'All actions must be revealed (no hiding)',
+effect: 'mustReveal'
+},
+{
+id: 'liesReversed',
+name: '🎭 REVERSE PSYCHOLOGY',
+description: 'All revealed actions are automatically lies',
+effect: 'liesReversed'
+},
+{
+id: 'none',
+name: '✨ NORMAL ROUND',
+description: 'No special effects',
+effect: 'none'
+}
+];
+
+```
+
+---
+
+## 🎲 RESOLUTION MATRIX
+
+| P1 ↓ \ P2 → | Attack | Defend | Charge | Heal | Super |
+|-------------|--------|--------|--------|------|-------|
+| **Attack**  | Both -1 | Blocked | P2 -1, P2 +1E | P2 -1 (no heal) | Blocked |
+| **Defend**  | Blocked | Nothing | Nothing | Nothing | Blocked |
+| **Charge**  | P1 -1, P1 +1E | P1 +1E | Both +1E | P1 +1E | P1 -3, P1 +1E |
+| **Heal**    | P1 -1 (no heal) | P1 +1HP | P1 +1HP | Both +1HP | P1 -3 (no heal) |
+| **Super**   | Blocked | Blocked | P2 -3, P2 +1E | P2 -3 | Both -3 |
+
+**Resolution Rules:**
+1. Apply modifier effects (e.g., bothLoseHP)
+2. Check energy costs (Super needs 2 Energy, or 1 with cheapSuper)
+3. Resolve interactions (see matrix)
+4. Apply damage modifiers (e.g., doubleDamage)
+5. Update HP/Energy
+6. Check win condition
+
+**Notes:**
+- Max HP: 10
+- Starting: HP 10, Energy 0
+- Attack interrupts Heal (no healing occurs)
+- Defend blocks both Attack and Super
+
+---
+
+## 📝 EXAMPLE FLOW
+```
+
+1. Client A connects
+2. Server → { type: 'connected', payload: { clientId: 'abc123' } }
+
+3. Client A → { type: 'createRoom', payload: { playerName: 'Alice' } }
+4. Server → { type: 'roomCreated', payload: { roomCode: 'X7K9', playerId: 'abc123' } }
+
+5. Client B connects & joins
+6. Server → { type: 'connected', payload: { clientId: 'def456' } }
+7. Client B → { type: 'joinRoom', payload: { roomCode: 'X7K9', playerName: 'Bob' } }
+8. Server → { type: 'roomJoined', payload: { roomCode: 'X7K9', playerId: 'def456' } }
+
+9. Server → Both: { type: 'gameStarted', payload: {...} }
+10. Server → Both: { type: 'timerUpdate', payload: { timeRemaining: 15 } }
+
+11. Client A → { type: 'submitAction', payload: { action: 'attack', shownAction: 'defend' } }
+12. Server → A: { type: 'actionSubmitted', payload: { success: true } }
+13. Server → B: { type: 'opponentShownAction', payload: { shownAction: 'defend' } }
+
+14. Client B → { type: 'submitAction', payload: { action: 'charge', shownAction: null } }
+15. Server → B: { type: 'actionSubmitted', payload: { success: true } }
+16. Server → A: { type: 'opponentShownAction', payload: { shownAction: null } }
+
+17. Server → Both: { type: 'roundResult', payload: {...} }
+
+18. Clients → { type: 'readyNextRound', payload: {} }
+19. Server → Both: { type: 'nextRound', payload: {...} }
+
+(Loop until gameOver: true)
+
+🏗️ STATE STRUCTURES
+Backend Room State
+javascript{
+roomCode: "X7K9",
+players: {
+"socketId1": { id: "abc123", name: "Alice", hp: 10, energy: 0, lastAction: null },
+"socketId2": { id: "def456", name: "Bob", hp: 10, energy: 0, lastAction: null }
+},
+currentRound: 1,
+currentModifier: { /_ modifier object _/ },
+pendingActions: {
+"abc123": { action: "attack", shownAction: "defend" }
+},
+gameStarted: true,
+gameOver: false,
+winner: null
+}
+Frontend State
+javascript{
+phase: 'playing', // 'lobby' | 'waiting' | 'playing' | 'roundEnd' | 'gameOver'
+roomCode: 'X7K9',
+playerId: 'abc123',
+playerName: 'Alice',
+opponentName: 'Bob',
+players: {
+'abc123': { name: 'Alice', hp: 10, energy: 0 },
+'def456': { name: 'Bob', hp: 10, energy: 0 }
+},
+currentRound: 1,
+modifier: { /_ ... _/ },
+selectedAction: 'attack',
+shownAction: 'defend',
+opponentShownAction: null,
+timeRemaining: 12,
+lastRoundResult: null
+}
+
+```
+
+---
+
+## 🧪 TEST SCENARIOS
+
+### 1. Basic Combat
+```
+
+P1: attack (shown: attack)
+P2: defend (shown: hide)
+→ P2 blocks, no damage
+
+```
+
+### 2. Energy Build-Up
+```
+
+Round 1: P1 charge → Energy = 1
+Round 2: P1 charge → Energy = 2
+Round 3: P1 super → P2 HP -3, P1 Energy = 0
+
+```
+
+### 3. Successful Bluff
+```
+
+P1: attack (shown: defend) [bluffing defense]
+P2: charge (believes P1 will defend)
+→ P2 HP -1, P2 Energy +1
+
+```
+
+### 4. Double Damage
+```
+
+Modifier: doubleDamage
+P1: attack, P2: charge
+→ P2 HP -2 (doubled), P2 Energy +1
+
+```
+
+### 5. Must Reveal
+```
+
+Modifier: mustReveal
+P1: attack (forced to show)
+P2: defend (forced to show)
+→ No mindgames, straightforward block
+
+📋 CHECKLIST
+Backend
+
+WebSocket server
+Room creation (4-char codes)
+Room joining
+Game state management
+Action validation
+Resolution logic
+Modifier effects
+Timer (15s countdown)
+Error handling
+Disconnect handling
+
+Frontend
+
+WebSocket connection
+Lobby UI
+Waiting room
+Game board
+Action buttons
+Bluff selection
+Timer display
+Modifier display
+Result animations
+Game over screen
