@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
+import { MAX_NAME_LENGTH, normalizeName } from './playerName'
 
 function App() {
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [inLobby, setInLobby] = useState(false)
-  const name = playerName.trim()
+  const name = normalizeName(playerName)
   const codeValid = /^[A-Z0-9]{4,6}$/.test(roomCode)
 
   const handleSubmit = (e: FormEvent) => {
@@ -47,6 +48,7 @@ function App() {
           type="text"
           aria-label="Player name"
           placeholder="Player name"
+          maxLength={MAX_NAME_LENGTH}
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
         />

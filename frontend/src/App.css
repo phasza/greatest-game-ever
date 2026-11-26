@@ -20,6 +20,7 @@
   display: flex;
   gap: 0.5rem;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .title-screen input,
@@ -30,6 +31,9 @@
   border: 1px solid #0ff;
   background: #14142a;
   color: inherit;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .title-screen button {
