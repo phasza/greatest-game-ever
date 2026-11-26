@@ -13,6 +13,15 @@ const createBtn = () => screen.getByRole('button', { name: 'Create room' })
 const nameInput = () => screen.getByLabelText('Player name')
 
 describe('title screen', () => {
+  it('shows a counter of the trimmed, capped name', async () => {
+    render(<App />)
+    expect(screen.getByTestId('name-counter').textContent).toBe('0/16')
+    await userEvent.type(nameInput(), '  Ann ')
+    expect(screen.getByTestId('name-counter').textContent).toBe('3/16')
+    await userEvent.type(nameInput(), 'x'.repeat(30))
+    expect(screen.getByTestId('name-counter').textContent).toBe('16/16')
+  })
+
   it('disables Create room for empty or whitespace names', async () => {
     render(<App />)
     expect(createBtn()).toHaveProperty('disabled', true)
