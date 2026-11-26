@@ -18,6 +18,7 @@ describe('title screen', () => {
     expect(screen.getByTestId('name-counter').textContent).toBe('0/16')
     await userEvent.type(nameInput(), '  Ann ')
     expect(screen.getByTestId('name-counter').textContent).toBe('3/16')
+    await userEvent.clear(nameInput())
     await userEvent.type(nameInput(), 'x'.repeat(30))
     expect(screen.getByTestId('name-counter').textContent).toBe('16/16')
   })
