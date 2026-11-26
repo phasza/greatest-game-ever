@@ -52,6 +52,9 @@ function App() {
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
         />
+        <small className="name-counter" data-testid="name-counter">
+          {name.length}/{MAX_NAME_LENGTH}
+        </small>
         <button type="submit" disabled={!name}>
           Create room
         </button>
