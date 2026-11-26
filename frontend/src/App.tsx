@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
+import { PLACEHOLDER, RoomCode } from './RoomCode'
 import { MAX_NAME_LENGTH, normalizeName } from './playerName'
 
 function App() {
@@ -21,7 +22,7 @@ function App() {
     return (
       <main className="lobby-screen">
         <h1>Lobby</h1>
-        <p className="room-code">Room code: waiting for server…</p>
+        <RoomCode code={PLACEHOLDER} />
         <h2>Players</h2>
         <ul aria-label="Players">
           <li>{name}</li>
