@@ -5,6 +5,7 @@ import './App.css'
 function App() {
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
+  const [inLobby, setInLobby] = useState(false)
   const name = playerName.trim()
   const codeValid = /^[A-Z0-9]{4,6}$/.test(roomCode)
 
@@ -12,6 +13,23 @@ function App() {
     e.preventDefault()
     if (!name) return
     console.log({ type: 'createRoom', payload: { playerName: name } })
+    setInLobby(true)
+  }
+
+  if (inLobby) {
+    return (
+      <main className="lobby-screen">
+        <h1>Lobby</h1>
+        <p className="room-code">Room code: waiting for server…</p>
+        <h2>Players</h2>
+        <ul aria-label="Players">
+          <li>{name}</li>
+        </ul>
+        <button type="button" onClick={() => setInLobby(false)}>
+          Leave
+        </button>
+      </main>
+    )
   }
 
   const handleJoin = (e: FormEvent) => {
