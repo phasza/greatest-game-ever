@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 import { PLACEHOLDER, RoomCode } from './RoomCode'
@@ -8,6 +8,7 @@ function App() {
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [inLobby, setInLobby] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const name = normalizeName(playerName)
   const codeValid = /^[A-Z0-9]{4,6}$/.test(roomCode)
 
@@ -17,6 +18,15 @@ function App() {
     console.log({ type: 'createRoom', payload: { playerName: name } })
     setInLobby(true)
   }
+
+  useEffect(() => {
+    if (!showHelp) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowHelp(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showHelp])
 
   if (inLobby) {
     return (
@@ -76,6 +86,25 @@ function App() {
           Join room
         </button>
       </form>
+      <button
+        type="button"
+        className="help-toggle"
+        aria-expanded={showHelp}
+        aria-controls="how-to-play"
+        onClick={() => setShowHelp((v) => !v)}
+      >
+        How to play
+      </button>
+      {showHelp && (
+        <section id="how-to-play" className="how-to-play" aria-label="How to play">
+          <ul>
+            <li>Two players face off in a duel.</li>
+            <li>The arena glitches while you fight, so stay alert.</li>
+            <li>Outplay your rival and dodge the chaos.</li>
+            <li>The last one standing wins.</li>
+          </ul>
+        </section>
+      )}
     </main>
   )
 }

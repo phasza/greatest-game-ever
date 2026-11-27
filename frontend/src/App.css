@@ -51,3 +51,12 @@
 .title-screen form + form {
   margin-top: 1rem;
 }
+
+.title-screen .help-toggle {
+  margin-top: 1rem;
+}
+
+.how-to-play {
+  margin-top: 1rem;
+  text-align: left;
+}
