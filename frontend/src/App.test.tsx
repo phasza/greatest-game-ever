@@ -69,3 +69,15 @@ describe('lobby', () => {
     expect(screen.getByText('GLITCH DUEL')).toBeTruthy()
   })
 })
+
+describe('join room', () => {
+  it('opens the lobby showing the entered room code', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    render(<App />)
+    await userEvent.type(nameInput(), 'Ann')
+    await userEvent.type(screen.getByLabelText('Room code'), 'abcd')
+    await userEvent.click(screen.getByRole('button', { name: 'Join room' }))
+    expect(screen.getByRole('heading', { name: 'Lobby' })).toBeTruthy()
+    expect(screen.getByText(/ABCD/)).toBeTruthy()
+  })
+})
