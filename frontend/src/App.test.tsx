@@ -190,6 +190,20 @@ describe('room server', () => {
     expect(sock().closed).toBe(true)
   })
 
+  it('resets ready/starting when the server drops the player to the title', async () => {
+    await start()
+    await userEvent.click(createBtn())
+    sock().open()
+    sock().receive('roomCreated', { roomCode: 'X7K9', playerId: 'abc' })
+    await userEvent.click(screen.getByRole('button', { name: 'Ready' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Start match' }))
+    act(() => sock().onclose?.())
+    expect(screen.getByRole('alert')).toBeTruthy()
+    await userEvent.click(createBtn())
+    expect(screen.getByRole('heading', { name: 'Lobby' })).toBeTruthy()
+    expect(screen.getByTestId('ready-state').textContent).toBe('Not ready')
+  })
+
   it('shows an error when the connection fails', async () => {
     await start()
     await userEvent.click(createBtn())

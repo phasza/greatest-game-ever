@@ -19,6 +19,8 @@ function App() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!name) return
+    setReady(false)
+    setStarting(false)
     room.createRoom(name)
   }
 
@@ -76,6 +78,8 @@ function App() {
   const handleJoin = (e: FormEvent) => {
     e.preventDefault()
     if (!name || !codeValid) return
+    setReady(false)
+    setStarting(false)
     room.joinRoom(roomCode, name)
   }
 
