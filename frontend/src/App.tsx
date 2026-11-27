@@ -8,6 +8,7 @@ function App() {
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [inLobby, setInLobby] = useState(false)
+  const [ready, setReady] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [lobbyCode, setLobbyCode] = useState(PLACEHOLDER)
   const name = normalizeName(playerName)
@@ -37,9 +38,17 @@ function App() {
         <RoomCode code={lobbyCode} />
         <h2>Players</h2>
         <ul aria-label="Players">
-          <li>{name}</li>
+          <li>
+            {name} <span data-testid="ready-state">{ready ? 'Ready' : 'Not ready'}</span>
+          </li>
         </ul>
-        <button type="button" onClick={() => setInLobby(false)}>
+        <button type="button" aria-pressed={ready} onClick={() => setReady((r) => !r)}>
+          {ready ? 'Not ready' : 'Ready'}
+        </button>
+        <button type="button" onClick={() => {
+            setInLobby(false)
+            setReady(false)
+          }}>
           Leave
         </button>
       </main>
