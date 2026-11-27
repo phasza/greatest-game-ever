@@ -9,6 +9,7 @@ function App() {
   const [roomCode, setRoomCode] = useState('')
   const [inLobby, setInLobby] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [lobbyCode, setLobbyCode] = useState(PLACEHOLDER)
   const name = normalizeName(playerName)
   const codeValid = /^[A-Z0-9]{4,6}$/.test(roomCode)
 
@@ -16,6 +17,7 @@ function App() {
     e.preventDefault()
     if (!name) return
     console.log({ type: 'createRoom', payload: { playerName: name } })
+    setLobbyCode(PLACEHOLDER)
     setInLobby(true)
   }
 
@@ -32,7 +34,7 @@ function App() {
     return (
       <main className="lobby-screen">
         <h1>Lobby</h1>
-        <RoomCode code={PLACEHOLDER} />
+        <RoomCode code={lobbyCode} />
         <h2>Players</h2>
         <ul aria-label="Players">
           <li>{name}</li>
@@ -48,6 +50,8 @@ function App() {
     e.preventDefault()
     if (!name || !codeValid) return
     console.log({ type: 'joinRoom', payload: { roomCode, playerName: name } })
+    setLobbyCode(roomCode)
+    setInLobby(true)
   }
 
   return (
