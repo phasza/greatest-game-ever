@@ -88,6 +88,24 @@ describe('lobby', () => {
   })
 })
 
+describe('start match', () => {
+  it('is gated on Ready and shows a starting screen with Back to lobby', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    render(<App />)
+    await userEvent.type(nameInput(), 'Ann')
+    await userEvent.click(createBtn())
+    const start = () => screen.getByRole('button', { name: 'Start match' })
+    expect(start()).toHaveProperty('disabled', true)
+    await userEvent.click(screen.getByRole('button', { name: 'Ready' }))
+    expect(start()).toHaveProperty('disabled', false)
+    await userEvent.click(start())
+    expect(screen.getByRole('heading', { name: 'Match starting…' })).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Back to lobby' }))
+    expect(screen.getByRole('heading', { name: 'Lobby' })).toBeTruthy()
+    expect(screen.getByTestId('ready-state').textContent).toBe('Ready')
+  })
+})
+
 describe('join room', () => {
   it('opens the lobby showing the entered room code', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
