@@ -41,6 +41,23 @@ describe('title screen', () => {
   })
 })
 
+describe('how to play', () => {
+  const btn = () => screen.getByRole('button', { name: 'How to play' })
+
+  it('toggles the panel with the button and closes on Escape', async () => {
+    render(<App />)
+    expect(screen.queryByRole('region', { name: 'How to play' })).toBeNull()
+    await userEvent.click(btn())
+    expect(screen.getByRole('region', { name: 'How to play' })).toBeTruthy()
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThanOrEqual(3)
+    await userEvent.click(btn())
+    expect(screen.queryByRole('region', { name: 'How to play' })).toBeNull()
+    await userEvent.click(btn())
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('region', { name: 'How to play' })).toBeNull()
+  })
+})
+
 describe('lobby', () => {
   it('shows the player name and Leave returns to the title screen', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
