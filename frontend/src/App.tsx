@@ -9,6 +9,7 @@ function App() {
   const [roomCode, setRoomCode] = useState('')
   const [inLobby, setInLobby] = useState(false)
   const [ready, setReady] = useState(false)
+  const [starting, setStarting] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [lobbyCode, setLobbyCode] = useState(PLACEHOLDER)
   const name = normalizeName(playerName)
@@ -31,6 +32,17 @@ function App() {
     return () => document.removeEventListener('keydown', onKey)
   }, [showHelp])
 
+  if (inLobby && starting) {
+    return (
+      <main className="match-screen">
+        <h1>Match starting…</h1>
+        <button type="button" onClick={() => setStarting(false)}>
+          Back to lobby
+        </button>
+      </main>
+    )
+  }
+
   if (inLobby) {
     return (
       <main className="lobby-screen">
@@ -44,6 +56,9 @@ function App() {
         </ul>
         <button type="button" aria-pressed={ready} onClick={() => setReady((r) => !r)}>
           {ready ? 'Not ready' : 'Ready'}
+        </button>
+        <button type="button" disabled={!ready} onClick={() => setStarting(true)}>
+          Start match
         </button>
         <button type="button" onClick={() => {
             setInLobby(false)
