@@ -64,9 +64,27 @@ describe('lobby', () => {
     render(<App />)
     await userEvent.type(nameInput(), 'Ann')
     await userEvent.click(createBtn())
-    expect(screen.getByRole('list', { name: 'Players' })).toHaveProperty('textContent', 'Ann')
+    expect(screen.getByRole('list', { name: 'Players' })).toHaveProperty('textContent', 'Ann Not ready')
     await userEvent.click(screen.getByRole('button', { name: 'Leave' }))
     expect(screen.getByText('GLITCH DUEL')).toBeTruthy()
+  })
+
+  it('toggles ready state and resets it on leave', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    render(<App />)
+    await userEvent.type(nameInput(), 'Ann')
+    await userEvent.click(createBtn())
+    const state = () => screen.getByTestId('ready-state').textContent
+    expect(state()).toBe('Not ready')
+    await userEvent.click(screen.getByRole('button', { name: 'Ready' }))
+    expect(state()).toBe('Ready')
+    expect(screen.queryByRole('button', { name: 'Ready' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Not ready' }))
+    expect(state()).toBe('Not ready')
+    await userEvent.click(screen.getByRole('button', { name: 'Ready' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Leave' }))
+    await userEvent.click(createBtn())
+    expect(state()).toBe('Not ready')
   })
 })
 
