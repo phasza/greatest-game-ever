@@ -3,24 +3,23 @@ import type { FormEvent } from 'react'
 import './App.css'
 import { PLACEHOLDER, RoomCode } from './RoomCode'
 import { MAX_NAME_LENGTH, normalizeName } from './playerName'
+import { useRoomSocket } from './useRoomSocket'
 
 function App() {
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
-  const [inLobby, setInLobby] = useState(false)
   const [ready, setReady] = useState(false)
   const [starting, setStarting] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
-  const [lobbyCode, setLobbyCode] = useState(PLACEHOLDER)
+  const room = useRoomSocket()
+  const inLobby = room.phase !== 'idle'
   const name = normalizeName(playerName)
-  const codeValid = /^[A-Z0-9]{4,6}$/.test(roomCode)
+  const codeValid = /^[A-Z0-9]{4}$/.test(roomCode)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!name) return
-    console.log({ type: 'createRoom', payload: { playerName: name } })
-    setLobbyCode(PLACEHOLDER)
-    setInLobby(true)
+    room.createRoom(name)
   }
 
   useEffect(() => {
@@ -47,12 +46,16 @@ function App() {
     return (
       <main className="lobby-screen">
         <h1>Lobby</h1>
-        <RoomCode code={lobbyCode} />
+        <RoomCode code={room.roomCode ?? PLACEHOLDER} />
+        {room.notice && <p role="status" className="notice">{room.notice}</p>}
         <h2>Players</h2>
         <ul aria-label="Players">
           <li>
             {name} <span data-testid="ready-state">{ready ? 'Ready' : 'Not ready'}</span>
           </li>
+          {room.opponentName && (
+            <li data-testid="opponent">{room.opponentName}</li>
+          )}
         </ul>
         <button type="button" aria-pressed={ready} onClick={() => setReady((r) => !r)}>
           {ready ? 'Not ready' : 'Ready'}
@@ -61,7 +64,7 @@ function App() {
           Start match
         </button>
         <button type="button" onClick={() => {
-            setInLobby(false)
+            room.leaveRoom()
             setReady(false)
           }}>
           Leave
@@ -73,15 +76,14 @@ function App() {
   const handleJoin = (e: FormEvent) => {
     e.preventDefault()
     if (!name || !codeValid) return
-    console.log({ type: 'joinRoom', payload: { roomCode, playerName: name } })
-    setLobbyCode(roomCode)
-    setInLobby(true)
+    room.joinRoom(roomCode, name)
   }
 
   return (
     <main className="title-screen">
       <h1>GLITCH DUEL</h1>
       <p className="tagline">Outplay your rival while the arena glitches around you.</p>
+      {room.error && <p role="alert" className="error">{room.error}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -104,10 +106,10 @@ function App() {
           aria-label="Room code"
           placeholder="Room code"
           minLength={4}
-          maxLength={6}
+          maxLength={4}
           value={roomCode}
           onChange={(e) =>
-            setRoomCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6))
+            setRoomCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4))
           }
         />
         <button type="submit" disabled={!name || !codeValid}>

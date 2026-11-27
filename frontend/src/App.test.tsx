@@ -1,12 +1,48 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
+
+class FakeWebSocket {
+  static OPEN = 1
+  static instances: FakeWebSocket[] = []
+  readyState = 0
+  sent: unknown[] = []
+  closed = false
+  onopen: (() => void) | null = null
+  onmessage: ((e: { data: string }) => void) | null = null
+  onerror: (() => void) | null = null
+  onclose: (() => void) | null = null
+  constructor(public url: string) {
+    FakeWebSocket.instances.push(this)
+  }
+  send(data: string) {
+    this.sent.push(JSON.parse(data))
+  }
+  close() {
+    this.closed = true
+    this.readyState = 3
+  }
+  open() {
+    this.readyState = 1
+    act(() => this.onopen?.())
+  }
+  receive(type: string, payload: object = {}) {
+    act(() => this.onmessage?.({ data: JSON.stringify({ type, payload }) }))
+  }
+}
+const sock = () => FakeWebSocket.instances[FakeWebSocket.instances.length - 1]
+
+beforeEach(() => {
+  FakeWebSocket.instances = []
+  vi.stubGlobal('WebSocket', FakeWebSocket)
+})
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 const createBtn = () => screen.getByRole('button', { name: 'Create room' })
@@ -32,12 +68,23 @@ describe('title screen', () => {
     expect(createBtn()).toHaveProperty('disabled', false)
   })
 
-  it('logs the createRoom message on submit', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+  it('sends createRoom on submit and shows the real code once roomCreated arrives', async () => {
     render(<App />)
     await userEvent.type(nameInput(), 'Ann')
     await userEvent.click(createBtn())
-    expect(log).toHaveBeenCalledWith({ type: 'createRoom', payload: { playerName: 'Ann' } })
+    expect(sock().url).toBe('ws://localhost:3000')
+    expect(screen.getByText(/waiting for server/)).toBeTruthy()
+    sock().open()
+    expect(sock().sent).toEqual([{ type: 'createRoom', payload: { playerName: 'Ann' } }])
+    sock().receive('roomCreated', { roomCode: 'X7K9', playerId: 'abc' })
+    expect(screen.getByText(/X7K9/)).toBeTruthy()
+    expect(screen.queryByText(/waiting for server/)).toBeNull()
+  })
+
+  it('limits the room code input to 4 characters', async () => {
+    render(<App />)
+    await userEvent.type(screen.getByLabelText('Room code'), 'abcdef')
+    expect(screen.getByLabelText('Room code')).toHaveProperty('value', 'ABCD')
   })
 })
 
@@ -60,7 +107,6 @@ describe('how to play', () => {
 
 describe('lobby', () => {
   it('shows the player name and Leave returns to the title screen', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => {})
     render(<App />)
     await userEvent.type(nameInput(), 'Ann')
     await userEvent.click(createBtn())
@@ -70,7 +116,6 @@ describe('lobby', () => {
   })
 
   it('toggles ready state and resets it on leave', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => {})
     render(<App />)
     await userEvent.type(nameInput(), 'Ann')
     await userEvent.click(createBtn())
@@ -90,7 +135,6 @@ describe('lobby', () => {
 
 describe('start match', () => {
   it('is gated on Ready and shows a starting screen with Back to lobby', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => {})
     render(<App />)
     await userEvent.type(nameInput(), 'Ann')
     await userEvent.click(createBtn())
@@ -108,12 +152,70 @@ describe('start match', () => {
 
 describe('join room', () => {
   it('opens the lobby showing the entered room code', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => {})
     render(<App />)
     await userEvent.type(nameInput(), 'Ann')
     await userEvent.type(screen.getByLabelText('Room code'), 'abcd')
     await userEvent.click(screen.getByRole('button', { name: 'Join room' }))
     expect(screen.getByRole('heading', { name: 'Lobby' })).toBeTruthy()
     expect(screen.getByText(/ABCD/)).toBeTruthy()
+  })
+})
+
+describe('room server', () => {
+  const start = async () => {
+    render(<App />)
+    await userEvent.type(nameInput(), 'Ann')
+  }
+
+  it('sends joinRoom and lists both players after roomJoined', async () => {
+    await start()
+    await userEvent.type(screen.getByLabelText('Room code'), 'x7k9')
+    await userEvent.click(screen.getByRole('button', { name: 'Join room' }))
+    sock().open()
+    expect(sock().sent).toEqual([{ type: 'joinRoom', payload: { roomCode: 'X7K9', playerName: 'Ann' } }])
+    sock().receive('roomJoined', { roomCode: 'X7K9', playerId: 'def' })
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('shows server errors on the title screen', async () => {
+    await start()
+    await userEvent.type(screen.getByLabelText('Room code'), 'ZZZZ')
+    await userEvent.click(screen.getByRole('button', { name: 'Join room' }))
+    sock().open()
+    sock().receive('error', { message: 'Room not found', code: 'ROOM_NOT_FOUND' })
+    expect(screen.getByText('GLITCH DUEL')).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toBe('Room not found')
+    expect(sock().closed).toBe(true)
+  })
+
+  it('shows an error when the connection fails', async () => {
+    await start()
+    await userEvent.click(createBtn())
+    act(() => sock().onerror?.())
+    expect(screen.getByRole('alert').textContent).toMatch(/connect/)
+  })
+
+  it('shows the opponent on opponentJoined and a notice on opponentDisconnected', async () => {
+    await start()
+    await userEvent.click(createBtn())
+    sock().open()
+    sock().receive('roomCreated', { roomCode: 'X7K9', playerId: 'abc' })
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    sock().receive('opponentJoined', { opponentName: 'Bob' })
+    expect(screen.getByTestId('opponent').textContent).toBe('Bob')
+    sock().receive('opponentDisconnected', { message: 'Your opponent has disconnected' })
+    expect(screen.queryByTestId('opponent')).toBeNull()
+    expect(screen.getByRole('status').textContent).toBe('Your opponent has disconnected')
+  })
+
+  it('Leave sends leaveRoom, closes the socket and returns to the title', async () => {
+    await start()
+    await userEvent.click(createBtn())
+    sock().open()
+    sock().receive('roomCreated', { roomCode: 'X7K9', playerId: 'abc' })
+    await userEvent.click(screen.getByRole('button', { name: 'Leave' }))
+    expect(sock().sent[1]).toEqual({ type: 'leaveRoom', payload: {} })
+    expect(sock().closed).toBe(true)
+    expect(screen.getByText('GLITCH DUEL')).toBeTruthy()
   })
 })
